@@ -17,7 +17,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B) {
     __shared__ double As[BLOCK_SIZE][BLOCK_SIZE], Bs[BLOCK_SIZE][BLOCK_SIZE];
 
     int tx = threadIdx.x, ty = threadIdx.y;
-    itn bx = blockIdx.x, by = blockIdx.y;
+    int bx = blockIdx.x, by = blockIdx.y;
 
     int I =  by * BLOCK_SIZE+ ty, J =  bx * BLOCK_SIZE + tx;
 
