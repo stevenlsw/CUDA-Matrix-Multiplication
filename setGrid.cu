@@ -1,4 +1,4 @@
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 64
 
 void setGrid(int n, dim3 &blockDim, dim3 &gridDim)
 {

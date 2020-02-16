@@ -4,7 +4,9 @@
 #include "utils.h"
 #include "types.h"
 
-#define BLOCK_SIZE 32 // matrix block
+#define BLOCK_SIZE 64 // matrix block
+#define BLOCK_SIZE_K 32
+
 #if BLOCK_SIZE % BLOCKDIM_X || BLOCK_SIZE % BLOCKDIM_Y
 #error BLOCK_SIZE must be multiple of blockDim
 #endif
@@ -24,7 +26,7 @@ using namespace std;
 __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B) 
 {
 
-    __shared__ double As[BLOCK_SIZE][BLOCK_SIZE], Bs[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ double As[BLOCK_SIZE][BLOCK_SIZE_K], Bs[BLOCK_SIZE_K][BLOCK_SIZE];
 
     int tx = threadIdx.x, ty = threadIdx.y;
     int bx = blockIdx.x, by = blockIdx.y;
@@ -33,14 +35,13 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
 
     _DOUBLE_ c[Y_SUB][X_SUB] = {0}; // Zero initialize the whole array
 
-    #pragma unroll
     for (int kk=0; kk<N/BLOCK_SIZE+1; kk++)
     {
             // load corresponding values of A in the matrix block
         #pragma unroll
         for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
             #pragma unroll
-            for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
+            for (int j = 0; j < BLOCK_SIZE_K; j += BLOCKDIM_X) {
                 // load I,K of A, As[ty][tx] = A_ELEMENT(I, kk*BLOCK_SIZE + tx);
                 As[ty + i][tx + j] = A_ELEMENT(I0 + ty + i, kk*BLOCK_SIZE + tx + j);
             }
@@ -48,7 +49,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         
         // load corresponding values of B in the matrix block
         #pragma unroll
-        for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
+        for (int i = 0; i < BLOCK_SIZE_K; i += BLOCKDIM_Y) {
             #pragma unroll
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load K,J of B, Bs[ty][tx] = B_ELEMENT(kk*BLOCK_SIZE + ty, J);
@@ -58,8 +59,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
 
         __syncthreads();
 
-        #pragma unroll
-        for (int k=0; k<BLOCK_SIZE; k++)
+        for (int k=0; k<BLOCK_SIZE_K; k++)
         {
             #pragma unroll
             for (int i = 0; i < Y_SUB; i++) 
