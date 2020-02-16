@@ -5,7 +5,7 @@
 #include "types.h"
 
 #define BLOCK_SIZE 64 // matrix block
-#define BLOCK_SIZE_K 32
+#define BLOCK_SIZE_K 32 // sub block 
 
 #if BLOCK_SIZE % BLOCKDIM_X || BLOCK_SIZE % BLOCKDIM_Y || \
     BLOCK_SIZE_K % BLOCKDIM_X || BLOCK_SIZE_K % BLOCKDIM_Y
