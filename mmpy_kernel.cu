@@ -37,7 +37,9 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
     for (int kk=0; kk<N/BLOCK_SIZE+1; kk++)
     {
             // load corresponding values of A in the matrix block
+        #pragma unroll
         for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
+            #pragma unroll
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load I,K of A, As[ty][tx] = A_ELEMENT(I, kk*BLOCK_SIZE + tx);
                 As[ty + i][tx + j] = A_ELEMENT(I0 + ty + i, kk*BLOCK_SIZE + tx + j);
@@ -45,7 +47,9 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         }
         
         // load corresponding values of B in the matrix block
+        #pragma unroll
         for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
+            #pragma unroll
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load K,J of B, Bs[ty][tx] = B_ELEMENT(kk*BLOCK_SIZE + ty, J);
                 Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE + ty + i, J0 + tx + j);
@@ -56,8 +60,10 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
 
         for (int k=0; k<BLOCK_SIZE; k++)
         {
+            #pragma unroll
             for (int i = 0; i < Y_SUB; i++) 
             {
+                #pragma unroll
                 for (int j = 0; j < X_SUB; j++) 
                 {
                     // Compute I,J of C, c += As[ty][k] * Bs[k][tx];
@@ -67,9 +73,10 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         }
 
         __syncthreads();
-
+        #pragma unroll
         for (int i = 0; i < Y_SUB; ++i) 
         {
+            #pragma unroll
             for (int j = 0; j < X_SUB; ++j) 
             {
                 if (I0 + ty + i * BLOCKDIM_Y < N && J0 + tx + j * BLOCKDIM_X < N)
