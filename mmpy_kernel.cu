@@ -29,7 +29,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
     int tx = threadIdx.x, ty = threadIdx.y;
     int bx = blockIdx.x, by = blockIdx.y;
 
-    int I =  by * BLOCK_SIZE+ ty, J =  bx * BLOCK_SIZE + tx;
+    int I0 =  by * BLOCK_SIZE, J0 =  bx * BLOCK_SIZE;
 
     _DOUBLE_ c[Y_SUB][X_SUB] = {0}; // Zero initialize the whole array
 
@@ -40,7 +40,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load I,K of A, As[ty][tx] = A_ELEMENT(I, kk*BLOCK_SIZE + tx);
-                As[ty + i][tx + j] = A_ELEMENT(I + ty + i, kk*BLOCK_SIZE + tx + j);
+                As[ty + i][tx + j] = A_ELEMENT(I0 + ty + i, kk*BLOCK_SIZE + tx + j);
             }
         }
         
@@ -48,7 +48,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load K,J of B, Bs[ty][tx] = B_ELEMENT(kk*BLOCK_SIZE + ty, J);
-                Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE + ty + i, J + tx + j);
+                Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE + ty + i, J0 + tx + j);
             }
         }
 
@@ -72,9 +72,9 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         {
             for (int j = 0; j < X_SUB; ++j) 
             {
-                if (I + ty + i * BLOCKDIM_Y < N && J + tx + j * BLOCKDIM_X < N)
+                if (I0 + ty + i * BLOCKDIM_Y < N && J0 + tx + j * BLOCKDIM_X < N)
                 {
-                    C_ELEMENT(I + ty + i * BLOCKDIM_Y, J + tx + j * BLOCKDIM_X) = c[i][j];
+                    C_ELEMENT(I0 + ty + i * BLOCKDIM_Y, J0 + tx + j * BLOCKDIM_X) = c[i][j];
                 }                
             }
         }
