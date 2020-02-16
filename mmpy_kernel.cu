@@ -7,7 +7,8 @@
 #define BLOCK_SIZE 64 // matrix block
 #define BLOCK_SIZE_K 32
 
-#if BLOCK_SIZE % BLOCKDIM_X || BLOCK_SIZE % BLOCKDIM_Y
+#if BLOCK_SIZE % BLOCKDIM_X || BLOCK_SIZE % BLOCKDIM_Y || \
+    BLOCK_SIZE_K % BLOCKDIM_X || BLOCK_SIZE_K % BLOCKDIM_Y
 #error BLOCK_SIZE must be multiple of blockDim
 #endif
 
@@ -35,7 +36,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
 
     _DOUBLE_ c[Y_SUB][X_SUB] = {0}; // Zero initialize the whole array
 
-    for (int kk=0; kk<N/BLOCK_SIZE+1; kk++)
+    for (int kk=0; kk<N/BLOCK_SIZE_K+1; kk++)
     {
             // load corresponding values of A in the matrix block
         #pragma unroll
@@ -43,7 +44,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
             #pragma unroll
             for (int j = 0; j < BLOCK_SIZE_K; j += BLOCKDIM_X) {
                 // load I,K of A, As[ty][tx] = A_ELEMENT(I, kk*BLOCK_SIZE + tx);
-                As[ty + i][tx + j] = A_ELEMENT(I0 + ty + i, kk*BLOCK_SIZE + tx + j);
+                As[ty + i][tx + j] = A_ELEMENT(I0 + ty + i, kk*BLOCK_SIZE_K + tx + j);
             }
         }
         
@@ -53,7 +54,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
             #pragma unroll
             for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
                 // load K,J of B, Bs[ty][tx] = B_ELEMENT(kk*BLOCK_SIZE + ty, J);
-                Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE + ty + i, J0 + tx + j);
+                Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE_K + ty + i, J0 + tx + j);
             }
         }
 
