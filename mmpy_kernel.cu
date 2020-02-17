@@ -4,17 +4,23 @@
 #include "utils.h"
 #include "types.h"
 
-#define BLOCK_SIZE 64 // matrix block
+#define BLOCK_SIZE_M 96 // block of A: M * K
+#define BLOCK_SIZE_N 96 // block of B: K * N
 #define BLOCK_SIZE_K 32 // sub block 
 
-#if BLOCK_SIZE % BLOCKDIM_X || BLOCK_SIZE % BLOCKDIM_Y || \
-    BLOCK_SIZE_K % BLOCKDIM_X || BLOCK_SIZE_K % BLOCKDIM_Y
-#error BLOCK_SIZE must be multiple of blockDim
+#if BLOCK_SIZE_M % BLOCKDIM_Y || BLOCK_SIZE_K % BLOCKDIM_X
+#error Use thread block to load block of A
+#endif
+#if BLOCK_SIZE_K % BLOCKDIM_Y || BLOCK_SIZE_N % BLOCKDIM_X
+#error Use thread block to load block of B
+#endif
+#if BLOCK_SIZE_M % BLOCKDIM_Y || BLOCK_SIZE_N % BLOCKDIM_X
+#error Use thread block to compute block of C
 #endif
 
-// Number of instructions Computing in each thread
-#define X_SUB (BLOCK_SIZE / BLOCKDIM_X)
-#define Y_SUB (BLOCK_SIZE / BLOCKDIM_Y)
+// Number of sub-block of C for each thread
+#define X_SUB (BLOCK_SIZE_N / BLOCKDIM_X)
+#define Y_SUB (BLOCK_SIZE_M / BLOCKDIM_Y)
 
 #define MAT(mat, N, i, j) (mat[(i)*N + (j)])
 #define MAT_PADDED(mat, N, i, j) ((i) < N && (j) < N ? MAT(mat, N, i, j) : 0)
@@ -27,12 +33,12 @@ using namespace std;
 __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B) 
 {
 
-    __shared__ double As[BLOCK_SIZE][BLOCK_SIZE_K], Bs[BLOCK_SIZE_K][BLOCK_SIZE];
+    __shared__ double As[BLOCK_SIZE_M][BLOCK_SIZE_K], Bs[BLOCK_SIZE_K][BLOCK_SIZE_N];
 
     int tx = threadIdx.x, ty = threadIdx.y;
     int bx = blockIdx.x, by = blockIdx.y;
 
-    int I0 =  by * BLOCK_SIZE, J0 =  bx * BLOCK_SIZE;
+    int I0 =  by * BLOCK_SIZE_M, J0 =  bx * BLOCK_SIZE_N;
 
     _DOUBLE_ c[Y_SUB][X_SUB] = {0}; // Zero initialize the whole array
 
@@ -41,7 +47,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
     {
             // load corresponding values of A in the matrix block
         #pragma unroll
-        for (int i = 0; i < BLOCK_SIZE; i += BLOCKDIM_Y) {
+        for (int i = 0; i < BLOCK_SIZE_M; i += BLOCKDIM_Y) {
             #pragma unroll
             for (int j = 0; j < BLOCK_SIZE_K; j += BLOCKDIM_X) {
                 // load I,K of A, As[ty][tx] = A_ELEMENT(I, kk*BLOCK_SIZE + tx);
@@ -53,7 +59,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
         #pragma unroll
         for (int i = 0; i < BLOCK_SIZE_K; i += BLOCKDIM_Y) {
             #pragma unroll
-            for (int j = 0; j < BLOCK_SIZE; j += BLOCKDIM_X) {
+            for (int j = 0; j < BLOCK_SIZE_N; j += BLOCKDIM_X) {
                 // load K,J of B, Bs[ty][tx] = B_ELEMENT(kk*BLOCK_SIZE + ty, J);
                 Bs[ty + i][tx + j] = B_ELEMENT(kk*BLOCK_SIZE_K + ty + i, J0 + tx + j);
             }
