@@ -43,7 +43,7 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
     _DOUBLE_ c[Y_SUB][X_SUB] = {0}; // Zero initialize the whole array
 
     #pragma unroll
-    for (int kk=0; kk<N/BLOCK_SIZE_K+1; kk++)
+    for (int kk=0; kk<N/BLOCK_SIZE_K; kk++)
     {
             // load corresponding values of A in the matrix block
         #pragma unroll
