@@ -81,19 +81,20 @@ __global__ void matMul(int N, _DOUBLE_ *C, _DOUBLE_ *A, _DOUBLE_ *B)
                 }
             }
         }
+    }
 
-        __syncthreads();
+    __syncthreads();
+    #pragma unroll
+    for (int i = 0; i < Y_SUB; ++i) 
+    {
         #pragma unroll
-        for (int i = 0; i < Y_SUB; ++i) 
+        for (int j = 0; j < X_SUB; ++j) 
         {
-            #pragma unroll
-            for (int j = 0; j < X_SUB; ++j) 
+            if (I0 + ty + i * BLOCKDIM_Y < N && J0 + tx + j * BLOCKDIM_X < N)
             {
-                if (I0 + ty + i * BLOCKDIM_Y < N && J0 + tx + j * BLOCKDIM_X < N)
-                {
-                    C_ELEMENT(I0 + ty + i * BLOCKDIM_Y, J0 + tx + j * BLOCKDIM_X) = c[i][j];
-                }                
-            }
+                C_ELEMENT(I0 + ty + i * BLOCKDIM_Y, J0 + tx + j * BLOCKDIM_X) = c[i][j];
+            }                
         }
     }
+
 }
